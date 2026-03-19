@@ -1,4 +1,5 @@
 import os
+import argparse
 
 def trim_log(file_path, target_mb, mode="oldest"):
 
@@ -13,14 +14,24 @@ def trim_log(file_path, target_mb, mode="oldest"):
     with open(file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
-    def current_size_bytes():
-        return sum(len(line.encode("utf-8")) for line in lines)
+    line_sizes = [len(line.encode("utf-8")) for line in lines]
+    current_size = sum(line_sizes)
 
-    while lines and current_size_bytes() > target_bytes:
-        if mode == "oldest":
-            lines.pop(0)
-        else:
-            lines.pop()
+    if current_size <= target_bytes:
+        return
+
+    if mode == "oldest":
+        start_index = 0
+        while start_index < len(lines) and current_size > target_bytes:
+            current_size -= line_sizes[start_index]
+            start_index += 1
+        lines = lines[start_index:]
+    else:
+        end_index = len(lines)
+        while end_index > 0 and current_size > target_bytes:
+            end_index -= 1
+            current_size -= line_sizes[end_index]
+        lines = lines[:end_index]
 
     with open(file_path, "w", encoding="utf-8") as file:
         file.writelines(lines)
